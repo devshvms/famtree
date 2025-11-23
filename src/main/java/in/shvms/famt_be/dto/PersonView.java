@@ -13,15 +13,15 @@ public class PersonView {
     private String id;
     private String fName;
     private String lName;
-    private String town;
+    private String curLocation;
 
     public static PersonView from(Human h) {
         if (h == null) return null;
-        String town = null;
-        Location loc = h.getCurrentLocation() != null ? h.getCurrentLocation() : h.getLocationOfBirth();
+        String curLocation = "Not Available";
+        Location loc = h.getLivesIn() != null ? h.getLivesIn() : h.getLocationOfBirth();
         if (loc != null) {
-            town = loc.getTown();
+            curLocation = loc.getId() +  ", " + loc.getParentLocation().getId();
         }
-        return new PersonView(h.getId(), h.getFName(), h.getLName(), town);
+        return new PersonView(h.getId(), h.getFName(), h.getLName(), curLocation);
     }
 }

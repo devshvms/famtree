@@ -1,7 +1,10 @@
 package in.shvms.famt_be.controller;
 
+import in.shvms.famt_be.dto.LocationDto;
 import in.shvms.famt_be.entity.Location;
-import in.shvms.famt_be.repo.LocationRepo;
+import in.shvms.famt_be.service.LocationService;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,53 +12,48 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/locations")
+@RequestMapping("/api/location")
+@AllArgsConstructor
 public class LocationController {
 
-    private final LocationRepo locationRepo;
-
-    public LocationController(LocationRepo locationRepo) {
-        this.locationRepo = locationRepo;
-    }
+    private final LocationService locationService;
 
     @GetMapping
     public List<Location> getAll() {
-        return locationRepo.findAll();
+        return locationService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Location> getById(@PathVariable String id) {
-        return locationRepo.findById(id)
+        return locationService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Location> create(@RequestBody Location location) {
-        if (location.getId() == null || location.getId().isBlank()) {
-            location.setId(null);
-        }
-        Location saved = locationRepo.save(location);
+    public ResponseEntity<Location> create(@RequestBody LocationDto locationDto) {
+        Location saved = locationService.save(locationDto);
         return ResponseEntity.created(URI.create("/api/locations/" + saved.getId())).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Location> update(@PathVariable String id, @RequestBody Location location) {
-        return locationRepo.findById(id)
-                .map(existing -> {
-                    location.setId(id);
-                    return ResponseEntity.ok(locationRepo.save(location));
-                })
+    public ResponseEntity<Location> updatePut(@PathVariable String id, @RequestBody LocationDto locationDto) {
+        return locationService.update(id, locationDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<Location> updatePatch(@PathVariable String id, @RequestBody LocationDto locationDto) {
+        return locationService.update(id, locationDto)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> delete(@PathVariable String id) {
-        return locationRepo.findById(id)
-                .map(existing -> {
-                    locationRepo.deleteById(id);
-                    return ResponseEntity.noContent().build();
-                })
+    public ResponseEntity<Location> delete(@PathVariable String id) {
+        return locationService.deleteNodeById(id)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 }

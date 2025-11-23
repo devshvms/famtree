@@ -1,7 +1,8 @@
 package in.shvms.famt_be.repo;
 
-import in.shvms.famt_be.entity.Human;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.neo4j.repository.Neo4jRepository;
 
-public interface HumanRepo extends MongoRepository<Human, String> {
+import in.shvms.famt_be.entity.Human;
+
+public interface HumanRepo extends Neo4jRepository<Human, String> {
 }

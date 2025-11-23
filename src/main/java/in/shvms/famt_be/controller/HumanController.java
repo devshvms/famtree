@@ -38,7 +38,7 @@ public class HumanController {
 
     @PostMapping
     public ResponseEntity<Human> create(@RequestBody Human human) {
-        if (human.getId() == null || human.getId().isBlank()) {
+        if (human.getId() == null) {
             // Let Mongo generate an ObjectId if client didn't provide one
             human.setId(null);
         }
@@ -50,7 +50,6 @@ public class HumanController {
     public ResponseEntity<Human> update(@PathVariable String id, @RequestBody Human human) {
         return humanRepo.findById(id)
                 .map(existing -> {
-                    human.setId(id);
                     return ResponseEntity.ok(humanRepo.save(human));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -68,7 +67,7 @@ public class HumanController {
 
     @PatchMapping("/{id}/father")
     public ResponseEntity<Human> setFather(@PathVariable String id, @RequestBody LinkRequest req) {
-        if (req == null || req.getId() == null || req.getId().isBlank()) {
+        if (req == null || req.getId() == null) {
             return ResponseEntity.badRequest().build();
         }
         return humanRepo.findById(id).map(person ->
@@ -81,7 +80,7 @@ public class HumanController {
 
     @PatchMapping("/{id}/mother")
     public ResponseEntity<Human> setMother(@PathVariable String id, @RequestBody LinkRequest req) {
-        if (req == null || req.getId() == null || req.getId().isBlank()) {
+        if (req == null || req.getId() == null) {
             return ResponseEntity.badRequest().build();
         }
         return humanRepo.findById(id).map(person ->
@@ -94,13 +93,13 @@ public class HumanController {
 
     @PatchMapping("/{id}/spouse")
     public ResponseEntity<Human> addSpouse(@PathVariable String id, @RequestBody LinkRequest req) {
-        if (req == null || req.getId() == null || req.getId().isBlank()) {
+        if (req == null || req.getId() == null) {
             return ResponseEntity.badRequest().build();
         }
         return humanRepo.findById(id).map(person ->
             humanRepo.findById(req.getId()).map(spouse -> {
-                List<Human> spouses = person.getSpouses();
-                if (spouses == null) spouses = new ArrayList<>();
+                Set<Human> spouses = person.getSpouses();
+                if (spouses == null) spouses = new HashSet<>();
                 boolean exists = spouses.stream().anyMatch(h -> h.getId() != null && h.getId().equals(spouse.getId()));
                 if (!exists) spouses.add(spouse);
                 person.setSpouses(spouses);
@@ -111,13 +110,13 @@ public class HumanController {
 
     @PatchMapping("/{id}/children")
     public ResponseEntity<Human> addChild(@PathVariable String id, @RequestBody LinkRequest req) {
-        if (req == null || req.getId() == null || req.getId().isBlank()) {
+        if (req == null || req.getId() == null) {
             return ResponseEntity.badRequest().build();
         }
         return humanRepo.findById(id).map(parent ->
             humanRepo.findById(req.getId()).map(child -> {
-                List<Human> children = parent.getChildren();
-                if (children == null) children = new ArrayList<>();
+                Set<Human> children = parent.getChildren();
+                if (children == null) children = new HashSet<>();
                 boolean exists = children.stream().anyMatch(h -> h.getId() != null && h.getId().equals(child.getId()));
                 if (!exists) children.add(child);
                 parent.setChildren(children);
@@ -142,7 +141,7 @@ public class HumanController {
 
         // current spouse: pick the first if any
         if (root.getSpouses() != null && !root.getSpouses().isEmpty()) {
-            fv.setSpouse(PersonView.from(root.getSpouses().get(0))); // simplistic current spouse
+            fv.setSpouse(PersonView.from(root.getSpouses().stream().findFirst().get())); // simplistic current spouse
         }
 
         // children
