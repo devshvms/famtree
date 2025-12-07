@@ -1,6 +1,6 @@
-package in.shvms.famt_be.config;
+package in.shvms.famt.famtbe.config;
 
-import in.shvms.famt_be.filters.JwtAuthenticationFilter;
+import in.shvms.famt.famtbe.filters.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

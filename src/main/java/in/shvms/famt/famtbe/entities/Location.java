@@ -1,4 +1,4 @@
-package in.shvms.famt_be.entity;
+package in.shvms.famt.famtbe.entities;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -6,7 +6,6 @@ import lombok.NonNull;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
-import org.springframework.data.neo4j.core.schema.Relationship.Direction;
 
 @Node("Location")
 @Data
@@ -19,11 +18,10 @@ public class Location {
     String locationName;
 
     @NonNull
-    // PLANET, COUNTRY, STATE, DISTRICT, TOWN, VILLAGE
     LocationType locationType;
 
     @NonNull
-    @Relationship(type = "PARENT", direction = Direction.INCOMING)
+    @Relationship(type = "PARENT", direction = Relationship.Direction.INCOMING)
     Location parentLocation;
 
     public Location(String locationName, LocationType locationType) {

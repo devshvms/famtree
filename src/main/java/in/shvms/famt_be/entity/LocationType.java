@@ -1,5 +1,1 @@
-package in.shvms.famt_be.entity;
-
-public enum LocationType {
-        PLANET, COUNTRY, STATE, DISTRICT, TOWN, VILLAGE
-    }
+The file `src/main/java/in/shvms/famt_be/entity/LocationType.java` already contains the specified enum `LocationType` with the values `PLANET, COUNTRY, STATE, DISTRICT, TOWN, VILLAGE`. No changes are required.
