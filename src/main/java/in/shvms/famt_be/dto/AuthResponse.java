@@ -1,4 +1,4 @@
-package in.shvms.famt_be.dtos;
+package in.shvms.famt_be.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

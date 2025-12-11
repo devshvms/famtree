@@ -1,5 +1,6 @@
 package in.shvms.famt_be.config;
 
+import in.shvms.famt_be.service.CustomUserDetailsService.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -14,6 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Enhanced JWT utility class with tenant and user ID support
+ */
 @Component
 public class JwtUtil {
 
@@ -23,8 +27,22 @@ public class JwtUtil {
     @Value("${jwt.expiration:86400000}") // 24 hours by default
     private long expirationTime;
 
+    /**
+     * Generate token with tenant and user information
+     */
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        
+        // Add tenant and user ID to claims if available
+        if (userDetails instanceof CustomUserDetails) {
+            CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+            claims.put("tenantId", customUserDetails.getTenantId());
+            claims.put("userId", customUserDetails.getUserId());
+            claims.put("roles", customUserDetails.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .toList());
+        }
+        
         return createToken(claims, userDetails.getUsername());
     }
 
@@ -38,20 +56,43 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Validate token against user details
+     */
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    /**
+     * Validate token without user details (for initial validation)
+     */
+    public Boolean validateToken(String token) {
+        try {
+            extractAllClaims(token);
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractTenantId(String token) {
+        return extractClaim(token, claims -> claims.get("tenantId", String.class));
+    }
+
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
