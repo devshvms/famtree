@@ -24,31 +24,22 @@ public class Event {
     @Id @GeneratedValue
     private UUID id;
 
-    // Crucial for Tenant Isolation
     @Property("tenantId")
     @NonNull
-    private String tenantId; 
+    private String tenantId;
 
-    // Type of event (e.g., Birth, Death, Marriage, Divorce, Adoption, Census)
     @Property("eventType")
     @NonNull
-    private String eventType; 
+    private String eventType;
 
-    // The date the event occurred
     @Property("eventDate")
-    private LocalDate eventDate; 
-    
-    // An optional descriptive title or notes
+    private LocalDate eventDate;
+
     private String description;
-    
-    // --- RELATIONSHIPS ---
-    
-    // Links the event to the location where it happened
+
     @Relationship(type = "OCCURRED_AT", direction = Direction.OUTGOING)
     private Location location;
 
-    // Links the event back to the Person(s) involved 
-    // (This is usually defined on the Person side, but helpful for direct lookups)
     @Relationship(type = "PARTICIPATED_IN", direction = Direction.INCOMING)
-    private Set<Person> participants; 
+    private Set<Person> participants;
 }

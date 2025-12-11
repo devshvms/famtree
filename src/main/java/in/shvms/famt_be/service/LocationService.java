@@ -4,8 +4,8 @@ import in.shvms.famt_be.dto.LocationDto;
 import in.shvms.famt_be.entity.AuditLog;
 import in.shvms.famt_be.entity.Location;
 import in.shvms.famt_be.entity.LocationType;
-import in.shvms.famt_be.repo.AuditLogRepo;
-import in.shvms.famt_be.repo.LocationRepo;
+import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
+import in.shvms.famt_be.repositories.neo4j.LocationRepository;
 import io.micrometer.common.lang.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +28,8 @@ import java.util.stream.Stream;
 @Transactional
 public class LocationService {
 
-    private final LocationRepo locationRepo;
-    private final AuditLogRepo auditLogRepo;
+    private final LocationRepository locationRepo;
+    private final AuditLogRepository auditLogRepo;
 
     // Helper method for audit logging
     private void logAudit(String tenantId, String userId, String action, String entityType, String entityId, Map<String, Object> details) {
@@ -102,6 +102,7 @@ public class LocationService {
         return childLocation;
     }
     
+    /* 
     public Optional<Location> updateLocation(String tenantId, String userId, String id, LocationDto locationDto) {
         log.info("Updating location with id: {} with \n LocationDto: {}", id, locationDto);
         return locationRepo.findById(id).map(location -> {
@@ -159,7 +160,7 @@ public class LocationService {
                 log.info("Location updated successfully: {}", location);
                 return location;
         }).orElseThrow(() -> new RuntimeException("Location not found with id: " + id));
-    }
+    } */
 
     public void deleteLocation(String tenantId, String userId, String id) {
         log.info("Deleting location with id: {}", id);

@@ -19,7 +19,6 @@ public class Location {
     String locationName;
 
     @NonNull
-    // PLANET, COUNTRY, STATE, DISTRICT, TOWN, VILLAGE
     LocationType locationType;
 
     @NonNull

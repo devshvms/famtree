@@ -3,8 +3,8 @@ package in.shvms.famt_be.service;
 import in.shvms.famt_be.entity.AuditLog;
 import in.shvms.famt_be.entity.User;
 import in.shvms.famt_be.entity.UserRole;
-import in.shvms.famt_be.repo.AuditLogRepo;
-import in.shvms.famt_be.repo.UserRepo;
+import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
+import in.shvms.famt_be.repositories.mongo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,8 +21,8 @@ import java.util.Set;
 @Transactional
 public class UserService {
 
-    private final UserRepo userRepo;
-    private final AuditLogRepo auditLogRepo;
+    private final UserRepository userRepo;
+    private final AuditLogRepository auditLogRepo;
     private final PasswordEncoder passwordEncoder;
 
     // Helper method for audit logging

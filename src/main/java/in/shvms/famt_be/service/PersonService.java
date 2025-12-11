@@ -1,31 +1,23 @@
 package in.shvms.famt_be.service;
 
 import in.shvms.famt_be.entity.AuditLog;
-import in.shvms.famt_be.entity.Event;
-import in.shvms.famt_be.entity.Lineage;
-import in.shvms.famt_be.entity.Location;
 import in.shvms.famt_be.entity.ParentChildRelation;
 import in.shvms.famt_be.entity.ParentChildType;
 import in.shvms.famt_be.entity.Person;
 import in.shvms.famt_be.entity.SpousalRelation;
 import in.shvms.famt_be.entity.SpousalStatus;
-import in.shvms.famt_be.repo.AuditLogRepo;
-import in.shvms.famt_be.repo.EventRepo;
-import in.shvms.famt_be.repo.LineageRepo;
-import in.shvms.famt_be.repo.LocationRepo;
-import in.shvms.famt_be.repo.PersonRepo;
+import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
+import in.shvms.famt_be.repositories.neo4j.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -33,11 +25,8 @@ import java.util.UUID;
 @Transactional
 public class PersonService {
 
-    private final PersonRepo personRepo;
-    private final LineageRepo lineageRepo;
-    private final EventRepo eventRepo;
-    private final LocationRepo locationRepo;
-    private final AuditLogRepo auditLogRepo;
+    private final PersonRepository personRepo;
+    private final AuditLogRepository auditLogRepo;
 
     // Helper method for audit logging
     private void logAudit(String tenantId, String userId, String action, String entityType, String entityId, Map<String, Object> details) {

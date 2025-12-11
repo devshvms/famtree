@@ -17,27 +17,20 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ParentChildRelation {
 
-    // Internal ID for the relationship entity
     @RelationshipId
-    private Long id; 
+    private Long id;
 
-    // Start node of the relationship (The Parent)
     @TargetNode
     @NonNull
-    private Person parent; 
+    private Person parent;
 
-    // --- RELATIONSHIP PROPERTIES (Metadata) ---
-    
-    // Specifies if the relationship is Biological, Adoptive, Step, Guardian, etc.
-    @Property("relationshipType") 
+    @Property("relationshipType")
     @NonNull
-    private ParentChildType relationshipType; // Assuming ParentChildType is an Enum (BIOLOGICAL, ADOPTIVE, etc.)
+    private ParentChildType relationshipType;
 
-    // Confidence score (0.0 to 1.0) based on source documentation
-    @Property("confidenceScore") 
-    private Double confidenceScore; 
+    @Property("confidenceScore")
+    private Double confidenceScore;
 
-    // Optional: Date the parent-child relationship was established (e.g., Adoption Date)
-    @Property("startDate") 
-    private LocalDate startDate; 
+    @Property("startDate")
+    private LocalDate startDate;
 }

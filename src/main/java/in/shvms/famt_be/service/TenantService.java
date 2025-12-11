@@ -1,6 +1,6 @@
-package in.shvms.famt_be.services;
+package in.shvms.famt_be.service;
 
-import in.shvms.famt_be.entities.Tenant;
+import in.shvms.famt_be.entity.Tenant;
 import in.shvms.famt_be.repositories.mongo.TenantRepository;
 import org.springframework.stereotype.Service;
 

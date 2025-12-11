@@ -43,7 +43,7 @@ public class Human {
 
     @Property("dateOfBirth")
     LocalDateTime dateOfBirth;
-    
+
     @Relationship(type = "BORN_IN")
     Location locationOfBirth;
 
@@ -54,6 +54,8 @@ public class Human {
     Human biologicalFather;
     @Relationship(type = "MOTHER_OF", direction = Direction.INCOMING)
     Human biologicalMother;
+
+    
 
     @Relationship(type = "CHILD_OF", direction = Direction.OUTGOING)
     Set<Human> children;

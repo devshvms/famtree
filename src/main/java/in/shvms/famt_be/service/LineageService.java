@@ -2,8 +2,8 @@ package in.shvms.famt_be.service;
 
 import in.shvms.famt_be.entity.AuditLog;
 import in.shvms.famt_be.entity.Lineage;
-import in.shvms.famt_be.repo.AuditLogRepo;
-import in.shvms.famt_be.repo.LineageRepo;
+import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
+import in.shvms.famt_be.repositories.neo4j.LineageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +19,8 @@ import java.util.UUID;
 @Transactional
 public class LineageService {
 
-    private final LineageRepo lineageRepo;
-    private final AuditLogRepo auditLogRepo;
+    private final LineageRepository lineageRepo;
+    private final AuditLogRepository auditLogRepo;
 
     // Helper method for audit logging
     private void logAudit(String tenantId, String userId, String action, String entityType, String entityId, Map<String, Object> details) {

@@ -1,6 +1,6 @@
-package in.shvms.famt_be.services;
+package in.shvms.famt_be.service;
 
-import in.shvms.famt_be.entities.Person;
+import in.shvms.famt_be.entity.Person;
 import in.shvms.famt_be.repositories.neo4j.PersonRepository;
 import org.springframework.stereotype.Service;
 

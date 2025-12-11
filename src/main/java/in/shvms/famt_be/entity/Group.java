@@ -1,4 +1,4 @@
-package in.shvms.famt.famtbe.entities;
+package in.shvms.famt_be.entity;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

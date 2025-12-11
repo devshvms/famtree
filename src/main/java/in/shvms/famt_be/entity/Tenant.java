@@ -1,4 +1,4 @@
-package in.shvms.famt_be.entities;
+package in.shvms.famt_be.entity;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;

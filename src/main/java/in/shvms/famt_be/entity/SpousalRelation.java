@@ -17,31 +17,23 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class SpousalRelation {
 
-    // Internal ID for the relationship entity
     @RelationshipId
-    private Long id; 
+    private Long id;
 
-    // Target node of the relationship (The Spouse)
     @TargetNode
     @NonNull
-    private Person spouse; 
+    private Person spouse;
 
-    // --- RELATIONSHIP PROPERTIES (Metadata) ---
-    
-    // Date the marriage/partnership began
-    @Property("startDate") 
-    private LocalDate startDate; 
+    @Property("startDate")
+    private LocalDate startDate;
 
-    // Date the partnership ended (e.g., Date of Divorce or Death of spouse)
-    @Property("endDate") 
-    private LocalDate endDate; 
+    @Property("endDate")
+    private LocalDate endDate;
 
-    // Current status (e.g., Married, Divorced, Separated, Widowed)
-    @Property("status") 
+    @Property("status")
     @NonNull
-    private SpousalStatus status; // Assuming SpousalStatus is an Enum
-    
-    // Type of partnership (e.g., Marriage, CommonLaw, RegisteredPartnership)
-    @Property("partnershipType") 
-    private String partnershipType; 
+    private SpousalStatus status;
+
+    @Property("partnershipType")
+    private String partnershipType;
 }

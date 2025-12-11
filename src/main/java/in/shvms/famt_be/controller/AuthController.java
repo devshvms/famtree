@@ -1,11 +1,12 @@
-package in.shvms.famt_be.controllers;
+package in.shvms.famt_be.controller;
 
+import in.shvms.famt_be.config.JwtUtil;
 import in.shvms.famt_be.dtos.AuthRequest;
 import in.shvms.famt_be.dtos.AuthResponse;
 import in.shvms.famt_be.dtos.TenantCreationRequest;
-import in.shvms.famt_be.entities.Tenant;
-import in.shvms.famt_be.services.TenantService;
-import in.shvms.famt_be.util.JwtUtil;
+import in.shvms.famt_be.entity.Tenant;
+import in.shvms.famt_be.service.TenantService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

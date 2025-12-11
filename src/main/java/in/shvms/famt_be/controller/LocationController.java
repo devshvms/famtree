@@ -1,5 +1,6 @@
 package in.shvms.famt_be.controller;
 
+import in.shvms.famt_be.dto.LocationDto;
 import in.shvms.famt_be.entity.Location;
 import in.shvms.famt_be.entity.LocationType;
 import in.shvms.famt_be.service.LocationService;
@@ -25,7 +26,7 @@ public class LocationController {
     @PostMapping
     public ResponseEntity<Location> createLocation(
             @RequestParam String tenantId,
-            @RequestBody Location location) {
+            @RequestBody LocationDto location) {
         try {
             Location createdLocation = locationService.createLocation(tenantId, getActingUserId(), location);
             return new ResponseEntity<>(createdLocation, HttpStatus.CREATED);

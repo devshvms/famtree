@@ -6,38 +6,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import org.springframework.data.neo4j.core.schema.GeneratedValue;
-import org.springframework.data.neo4j.core.schema.Id;
-import org.springframework.data.neo4j.core.schema.Node;
-import org.springframework.data.neo4j.core.schema.Property;
-import org.springframework.data.neo4j.core.schema.Relationship;
-import org.springframework.data.neo4j.core.schema.Relationship.Direction;
+import org.springframework.data.neo4j.core.schema.*;
 
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
-@Node("Person") // Standard node label
+@Node("Person")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @NoArgsConstructor
 public class Person {
 
-    // --- 1. CORE IDENTIFIERS AND TENANCY ---
     @Id @GeneratedValue
-    private UUID id; // Using UUID for robust distributed IDs
-    
-    // Crucial for Tenant Isolation: Every node must be linked to its tenant.
+    private UUID id;
+
     @Property("tenantId")
     @NonNull
-    private String tenantId; 
+    private String tenantId;
 
-    // Crucial for Lineage Isolation: Links the person to a specific family tree within the tenant.
-    @Relationship(type = "MEMBER_OF", direction = Direction.OUTGOING)
+    @Relationship(type = "MEMBER_OF", direction = Relationship.Direction.OUTGOING)
     private Lineage lineage;
 
-    // --- 2. BASIC PROPERTIES ---
-    @Property("firstName") // Use clear, consistent property names (fName -> firstName)
+    @Property("firstName")
     @JsonProperty("firstName")
     @JsonAlias({"fName", "fname", "first_name"})
     private String firstName;
@@ -46,57 +37,40 @@ public class Person {
     @JsonProperty("lastName")
     @JsonAlias({"lName", "lname", "last_name", "surname"})
     private String lastName;
-    
-    // Add granularity properties like titles or maiden name.
+
     private String maidenName;
     private String petName;
-    
-    @NonNull
-    private Gender gender; // Assuming Gender is an Enum
 
-    // Use LocalDate for birth/death, not LocalDateTime, unless time-of-birth is crucial.
+    @NonNull
+    private Gender gender;
+
     @Property("dateOfBirth")
-    private LocalDate dateOfBirth; 
-    
+    private LocalDate dateOfBirth;
+
     @Property("dateOfDeath")
     private LocalDate dateOfDeath;
 
-    // --- 3. LOCATION & EVENT RELATIONSHIPS (Granular) ---
-    // Link to an Event node, which then links to the Location.
-    @Relationship(type = "BORN_IN_EVENT", direction = Direction.OUTGOING)
+    @Relationship(type = "BORN_IN_EVENT", direction = Relationship.Direction.OUTGOING)
     private Event birthEvent;
 
-    @Relationship(type = "DEATH_EVENT", direction = Direction.OUTGOING)
+    @Relationship(type = "DEATH_EVENT", direction = Relationship.Direction.OUTGOING)
     private Event deathEvent;
 
-    @Relationship(type = "LIFE_EVENT", direction = Direction.OUTGOING)
+    @Relationship(type = "LIFE_EVENT", direction = Relationship.Direction.OUTGOING)
     private Set<Event> lifeEvents;
 
-    @Relationship(type = "RESIDES_AT", direction = Direction.OUTGOING)
-    private Location currentResidence; // Changed LIVES_IN to be more specific.
+    @Relationship(type = "RESIDES_AT", direction = Relationship.Direction.OUTGOING)
+    private Location currentResidence;
 
-    // --- 4. FAMILY RELATIONSHIPS (Highly Granular) ---
-    
-    // Instead of simple Human links, use an SDN-specific Relationship Entity.
-    // This allows you to store properties *on the relationship*, like Adoption Date,
-    // confidence score, and relationship status.
-    
-    @Relationship(type = "PARENT_CHILD", direction = Direction.INCOMING)
-    // ParentChildRelation is a new class that contains 'since' or 'type' (Biological/Adoptive) properties.
-    private Set<ParentChildRelation> childrenRelations; 
+    @Relationship(type = "PARENT_CHILD", direction = Relationship.Direction.INCOMING)
+    private Set<ParentChildRelation> childrenRelations;
 
-    @Relationship(type = "SPOUSAL", direction = Direction.OUTGOING)
-    // SpousalRelation is a new class that contains 'startDate', 'endDate', and 'status' (Married/Divorced) properties.
+    @Relationship(type = "SPOUSAL", direction = Relationship.Direction.OUTGOING)
     private Set<SpousalRelation> spouseRelations;
 
+    @Relationship(type = "KNOWS", direction = Relationship.Direction.OUTGOING)
+    private Set<Person> friends;
 
-    // --- 5. NON-FAMILY RELATIONSHIPS ---
-    // FRIEND_OF is typically simpler. Use a Set<Person> for simplicity unless the Map is specifically required.
-    // The Map<Integer, List<Human>> structure is unusual for simple graph relationships unless the Integer represents a 'friendship score' property on the relationship itself.
-    @Relationship(type = "KNOWS", direction = Direction.OUTGOING)
-    private Set<Person> friends; 
-    
-    // Optional: Add a relationship for professional/group connections
-    @Relationship(type = "ASSOCIATED_WITH", direction = Direction.OUTGOING)
+    @Relationship(type = "ASSOCIATED_WITH", direction = Relationship.Direction.OUTGOING)
     private Set<Group> associations;
 }

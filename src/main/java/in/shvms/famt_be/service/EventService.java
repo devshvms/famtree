@@ -2,12 +2,11 @@ package in.shvms.famt_be.service;
 
 import in.shvms.famt_be.entity.AuditLog;
 import in.shvms.famt_be.entity.Event;
-import in.shvms.famt_be.entity.Location;
 import in.shvms.famt_be.entity.Person;
-import in.shvms.famt_be.repo.AuditLogRepo;
-import in.shvms.famt_be.repo.EventRepo;
-import in.shvms.famt_be.repo.LocationRepo;
-import in.shvms.famt_be.repo.PersonRepo;
+import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
+import in.shvms.famt_be.repositories.neo4j.EventRepository;
+import in.shvms.famt_be.repositories.neo4j.LocationRepository;
+import in.shvms.famt_be.repositories.neo4j.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,10 +23,10 @@ import java.util.HashSet; // Needed for event.getParticipants() if it's null ini
 @Transactional
 public class EventService {
 
-    private final EventRepo eventRepo;
-    private final PersonRepo personRepo;
-    private final LocationRepo locationRepo; // Although not used in provided snippet, it's in the prompt
-    private final AuditLogRepo auditLogRepo;
+    private final EventRepository eventRepository;
+    private final PersonRepository personRepository;
+    private final LocationRepository locationRepository; // Although not used in provided snippet, it's in the prompt
+    private final AuditLogRepository auditLogRepository;
 
     // Helper method for audit logging
     private void logAudit(String tenantId, String userId, String action, String entityType, String entityId, Map<String, Object> details) {
@@ -42,7 +41,7 @@ public class EventService {
                 details,
                 null // IP address can be retrieved from request context if needed
         );
-        auditLogRepo.save(auditLog);
+        auditLogRepository.save(auditLog);
     }
 
     public Event createEvent(String tenantId, String userId, Event event) {
@@ -51,21 +50,21 @@ public class EventService {
         if (event.getParticipants() == null) {
             event.setParticipants(new HashSet<>());
         }
-        Event savedEvent = eventRepo.save(event);
+        Event savedEvent = eventRepository.save(event);
         logAudit(tenantId, userId, "CREATE", "Event", savedEvent.getId().toString(), Map.of("newEvent", savedEvent));
         return savedEvent;
     }
 
     public Optional<Event> getEventById(String tenantId, UUID id) {
-        return eventRepo.findByTenantIdAndId(tenantId, id);
+        return eventRepository.findByTenantIdAndId(tenantId, id);
     }
 
     public List<Event> getAllEvents(String tenantId) {
-        return eventRepo.findAllByTenantId(tenantId);
+        return eventRepository.findAllByTenantId(tenantId);
     }
 
     public Event updateEvent(String tenantId, String userId, UUID id, Event updatedEvent) {
-        return eventRepo.findByTenantIdAndId(tenantId, id).map(event -> {
+        return eventRepository.findByTenantIdAndId(tenantId, id).map(event -> {
             Map<String, Object> oldEventDetails = Map.of(
                     "oldEventType", event.getEventType(),
                     "oldEventDate", event.getEventDate(),
@@ -80,13 +79,13 @@ public class EventService {
             // Handle location update
             if (updatedEvent.getLocation() != null && updatedEvent.getLocation().getId() != null) {
                 // Assuming LocationRepo can find a Location by its ID (String)
-                locationRepo.findById(updatedEvent.getLocation().getId())
+                locationRepository.findById(updatedEvent.getLocation().getId())
                         .ifPresent(event::setLocation);
             } else {
                 event.setLocation(null); // Or throw error if location is mandatory
             }
 
-            Event savedEvent = eventRepo.save(event);
+            Event savedEvent = eventRepository.save(event);
             logAudit(tenantId, userId, "UPDATE", "Event", savedEvent.getId().toString(), Map.of(
                     "oldValues", oldEventDetails,
                     "newValues", Map.of(
@@ -101,41 +100,41 @@ public class EventService {
     }
 
     public void deleteEvent(String tenantId, String userId, UUID id) {
-        Event eventToDelete = eventRepo.findByTenantIdAndId(tenantId, id)
+        Event eventToDelete = eventRepository.findByTenantIdAndId(tenantId, id)
                 .orElseThrow(() -> new RuntimeException("Event not found for tenant " + tenantId + " and ID " + id));
-        eventRepo.delete(eventToDelete);
+        eventRepository.delete(eventToDelete);
         logAudit(tenantId, userId, "DELETE", "Event", id.toString(), Map.of("deletedEvent", eventToDelete));
     }
 
     public List<Event> getEventsByType(String tenantId, String eventType) {
-        return eventRepo.findByTenantIdAndEventType(tenantId, eventType);
+        return eventRepository.findByTenantIdAndEventType(tenantId, eventType);
     }
 
     public Event addParticipantToEvent(String tenantId, String userId, UUID eventId, UUID personId) {
-        Event event = eventRepo.findByTenantIdAndId(tenantId, eventId)
+        Event event = eventRepository.findByTenantIdAndId(tenantId, eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found for tenant " + tenantId + " and ID " + eventId));
-        Person person = personRepo.findByTenantIdAndId(tenantId, personId)
+        Person person = personRepository.findByTenantIdAndId(tenantId, personId)
                 .orElseThrow(() -> new RuntimeException("Person not found for tenant " + tenantId + " and ID " + personId));
 
         if (event.getParticipants() == null) {
             event.setParticipants(new HashSet<>());
         }
         event.getParticipants().add(person);
-        Event savedEvent = eventRepo.save(event);
+        Event savedEvent = eventRepository.save(event);
         logAudit(tenantId, userId, "ADD_PARTICIPANT", "Event", eventId.toString(), Map.of("personIdAdded", personId));
         return savedEvent;
     }
 
     public Event removeParticipantFromEvent(String tenantId, String userId, UUID eventId, UUID personId) {
-        Event event = eventRepo.findByTenantIdAndId(tenantId, eventId)
+        Event event = eventRepository.findByTenantIdAndId(tenantId, eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found for tenant " + tenantId + " and ID " + eventId));
-        Person person = personRepo.findByTenantIdAndId(tenantId, personId)
+        Person person = personRepository.findByTenantIdAndId(tenantId, personId)
                 .orElseThrow(() -> new RuntimeException("Person not found for tenant " + tenantId + " and ID " + personId));
 
         if (event.getParticipants() != null) {
             event.getParticipants().remove(person);
         }
-        Event savedEvent = eventRepo.save(event);
+        Event savedEvent = eventRepository.save(event);
         logAudit(tenantId, userId, "REMOVE_PARTICIPANT", "Event", eventId.toString(), Map.of("personIdRemoved", personId));
         return savedEvent;
     }
