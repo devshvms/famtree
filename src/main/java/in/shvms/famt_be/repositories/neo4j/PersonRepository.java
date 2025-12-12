@@ -16,7 +16,7 @@ public interface PersonRepository extends Neo4jRepository<Person, UUID> {
 
     List<Person> findAllByTenantIdAndLineageId(String tenantId, UUID lineageId);
 
-    List<Person> findByTenantIdAndNameContaining(String tenantId, String name);
+    List<Person> findByTenantIdAndFirstNameContaining(String tenantId, String name);
 
     List<Person> findAllByTenantId(String tenantId);
 }

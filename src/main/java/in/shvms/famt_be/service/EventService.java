@@ -9,7 +9,6 @@ import in.shvms.famt_be.repositories.neo4j.LocationRepository;
 import in.shvms.famt_be.repositories.neo4j.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +19,6 @@ import java.util.HashSet; // Needed for event.getParticipants() if it's null ini
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class EventService {
 
     private final EventRepository eventRepository;

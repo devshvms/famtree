@@ -6,7 +6,6 @@ import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
 import in.shvms.famt_be.repositories.neo4j.LineageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class LineageService {
 
     private final LineageRepository lineageRepo;

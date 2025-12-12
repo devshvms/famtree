@@ -10,7 +10,6 @@ import in.shvms.famt_be.repositories.mongo.AuditLogRepository;
 import in.shvms.famt_be.repositories.neo4j.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,7 +21,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PersonService {
 
     private final PersonRepository personRepo;
@@ -194,7 +192,7 @@ public class PersonService {
     }
 
     public List<Person> findPeopleByName(String tenantId, String name) {
-        return personRepo.findByTenantIdAndNameContaining(tenantId, name);
+        return personRepo.findByTenantIdAndFirstNameContaining(tenantId, name);
     }
 
     public List<Person> findPeopleByLineage(String tenantId, UUID lineageId) {

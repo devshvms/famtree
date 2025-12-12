@@ -1,7 +1,7 @@
 package in.shvms.famt_be.dto;
 
-import in.shvms.famt_be.entity.Human;
 import in.shvms.famt_be.entity.Location;
+import in.shvms.famt_be.entity.Person;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,13 +15,13 @@ public class PersonView {
     private String lName;
     private String curLocation;
 
-    public static PersonView from(Human h) {
+    public static PersonView from(Person h) {
         if (h == null) return null;
         String curLocation = "Not Available";
-        Location loc = h.getLivesIn() != null ? h.getLivesIn() : h.getLocationOfBirth();
+        Location loc = h.getCurrentResidence();
         if (loc != null) {
-            curLocation = loc.getId() +  ", " + loc.getParentLocation().getId();
+            curLocation = loc.getLocationName() +  ", " + loc.getParentLocation().getLocationName();
         }
-        return new PersonView(h.getId(), h.getFName(), h.getLName(), curLocation);
+        return new PersonView(h.getId().toString(), h.getFirstName(), h.getLastName(), curLocation);
     }
 }
