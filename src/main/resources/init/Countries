@@ -1,21 +1,28 @@
-// -- 1. Wipe ALL existing location nodes
-MATCH (l:location) DETACH DELETE l;
+// ========================================
+// Database Initialization Script
+// Purpose: Create Earth node and all countries
+// Run this ONCE during initial setup
+// ========================================
 
-// -- 2. Create the 'Earth' node
-CREATE (earth:location {
+// Step 1: Clean up existing location nodes (CAUTION: Only run on fresh DB)
+MATCH (l:Location) DETACH DELETE l;
+
+// Step 2: Create the Earth node
+CREATE (earth:Location {
   id: "E", 
   locationType: "PLANET", 
   locationName: "Earth"
-})
+});
 
-// -- 3. Define all countries as a list
+// Step 3: Define all countries as a list
+MATCH (earth:Location {id: "E"})
 WITH earth, [ 
   {name: 'Afghanistan', id: 'AF'}, 
   {name: 'Åland Islands', id: 'AX'}, 
   {name: 'Albania', id: 'AL'}, 
   {name: 'Algeria', id: 'DZ'}, 
   {name: 'American Samoa', id: 'AS'}, 
-  {name: 'AndorrA', id: 'AD'}, 
+  {name: 'Andorra', id: 'AD'}, 
   {name: 'Angola', id: 'AO'}, 
   {name: 'Anguilla', id: 'AI'}, 
   {name: 'Antarctica', id: 'AQ'}, 
@@ -191,7 +198,7 @@ WITH earth, [
   {name: 'Reunion', id: 'RE'}, 
   {name: 'Romania', id: 'RO'}, 
   {name: 'Russian Federation', id: 'RU'}, 
-  {name: 'RWANDA', id: 'RW'}, 
+  {name: 'Rwanda', id: 'RW'}, 
   {name: 'Saint Helena', id: 'SH'}, 
   {name: 'Saint Kitts and Nevis', id: 'KN'}, 
   {name: 'Saint Lucia', id: 'LC'}, 
@@ -255,14 +262,16 @@ WITH earth, [
   {name: 'Zimbabwe', id: 'ZW'} 
 ] AS countries
 
-// -- 4. Iterate (UNWIND) the list, create each country, and link it
+// Step 4: Iterate through list and create each country with PARENT relationship to Earth
 UNWIND countries AS countryData
-CREATE (country:location {
+CREATE (country:Location {
   id: countryData.id, 
   locationType: "COUNTRY", 
   locationName: countryData.name
 })
-CREATE (country)<-[:PARENT]-(earth)
+CREATE (country)-[:PARENT]->(earth);
 
-// -- 5. Return a confirmation
-RETURN earth, count(country) AS countriesCreated;
+// Step 5: Verify and return confirmation
+MATCH (earth:Location {id: "E"})
+MATCH (country:Location {locationType: "COUNTRY"})
+RETURN earth, count(country) AS totalCountries;

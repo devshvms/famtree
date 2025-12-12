@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+.idx/
+.mvn/
+
+### Credentials ###
+creds.properties
