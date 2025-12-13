@@ -1,36 +1,37 @@
 package in.shvms.famt_be.controller;
 
 import in.shvms.famt_be.config.SecurityContextHelper;
-import in.shvms.famt_be.entity.ParentChildType;
+import in.shvms.famt_be.dto.*;
 import in.shvms.famt_be.entity.Person;
-import in.shvms.famt_be.entity.SpousalStatus;
 import in.shvms.famt_be.service.PersonService;
+import in.shvms.famt_be.util.EntityMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Enhanced Person Management Controller
- * Comprehensive endpoints for person and relationship management
+ * Enhanced Person Management Controller using DTOs
  */
 @RestController
 @RequestMapping("/api/v1/tenants/{tenantId}/people")
 @RequiredArgsConstructor
-@Tag(name = "People", description = "Comprehensive person and relationship management")
+@Tag(name = "People", description = "Person and relationship management with DTOs")
 @SecurityRequirement(name = "bearerAuth")
 public class PersonController {
 
     private final PersonService personService;
+    private final EntityMapper entityMapper;
     private final SecurityContextHelper securityContext;
 
     private void validateTenantAccess(String tenantId) {
@@ -43,17 +44,28 @@ public class PersonController {
     // ========== PERSON CRUD ==========
 
     @PostMapping
-    @Operation(summary = "Create person", description = "Create a new person in the family tree")
+    @Operation(summary = "Create person", description = "Create a new person using simplified DTO")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> createPerson(
             @PathVariable String tenantId,
-            @RequestBody Person person) {
+            @Valid @RequestBody PersonDto personDto) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
+            // Validate DTO
+            personDto.validate();
+            
+            // Convert DTO to entity
+            Person person = entityMapper.toPersonEntity(personDto, tenantId);
+            
+            // Create person
             Person createdPerson = personService.createPerson(tenantId, userId, person);
-            return new ResponseEntity<>(createdPerson, HttpStatus.CREATED);
+            
+            // Convert back to DTO
+            PersonDto responseDto = entityMapper.toPersonDto(createdPerson);
+            
+            return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -67,12 +79,17 @@ public class PersonController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all people", description = "Get all people in tenant's family tree")
+    @Operation(summary = "Get all people", description = "Get all people as simple DTOs")
     public ResponseEntity<?> getAllPeople(@PathVariable String tenantId) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> people = personService.getAllPeople(tenantId);
-            return ResponseEntity.ok(people);
+            List<PersonDto> responseDtos = people.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -83,13 +100,15 @@ public class PersonController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get person by ID", description = "Get a specific person by their ID")
+    @Operation(summary = "Get person by ID", description = "Get detailed person information")
     public ResponseEntity<?> getPersonById(
             @PathVariable String tenantId,
             @PathVariable UUID id) {
         try {
             validateTenantAccess(tenantId);
+            
             return personService.getPersonById(tenantId, id)
+                    .map(entityMapper::toPersonDetailDto)
                     .map(ResponseEntity::ok)
                     .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (SecurityException e) {
@@ -102,18 +121,29 @@ public class PersonController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update person", description = "Update person information")
+    @Operation(summary = "Update person", description = "Update person using DTO")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> updatePerson(
             @PathVariable String tenantId,
             @PathVariable UUID id,
-            @RequestBody Person person) {
+            @Valid @RequestBody PersonDto personDto) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
+            // Validate DTO
+            personDto.validate();
+            
+            // Convert DTO to entity
+            Person person = entityMapper.toPersonEntity(personDto, tenantId);
+            
+            // Update person
             Person updatedPerson = personService.updatePerson(tenantId, userId, id, person);
-            return ResponseEntity.ok(updatedPerson);
+            
+            // Convert back to DTO
+            PersonDto responseDto = entityMapper.toPersonDto(updatedPerson);
+            
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -129,7 +159,7 @@ public class PersonController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete person", description = "Delete a person from the family tree")
+    @Operation(summary = "Delete person", description = "Delete a person")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<?> deletePerson(
             @PathVariable String tenantId,
@@ -153,24 +183,31 @@ public class PersonController {
 
     // ========== PARENT-CHILD RELATIONSHIPS ==========
 
-    @PostMapping("/{parentId}/children/{childId}")
+    @PostMapping("/relationships/parent-child")
     @Operation(summary = "Add parent-child relationship", 
-              description = "Create a parent-child relationship with type (BIOLOGICAL, ADOPTIVE, FOSTER, GUARDIAN)")
+              description = "Create a parent-child relationship using DTO")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> addParentChildRelation(
             @PathVariable String tenantId,
-            @PathVariable UUID parentId,
-            @PathVariable UUID childId,
-            @RequestParam ParentChildType type,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) Double confidenceScore) {
+            @Valid @RequestBody RelationshipDto.ParentChildRelationRequest request) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
+            // Validate request
+            request.validate();
+            
             Person child = personService.addParentChildRelation(
-                    tenantId, userId, parentId, childId, type, startDate, confidenceScore);
-            return ResponseEntity.ok(child);
+                    tenantId, userId, 
+                    request.parentId(), 
+                    request.childId(), 
+                    request.relationshipType(), 
+                    request.startDate(), 
+                    request.confidenceScore() != null ? request.confidenceScore() : 1.0
+            );
+            
+            PersonDto responseDto = entityMapper.toPersonDto(child);
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -185,49 +222,20 @@ public class PersonController {
         }
     }
 
-    @DeleteMapping("/{parentId}/children/{childId}")
-    @Operation(summary = "Remove parent-child relationship", 
-              description = "Remove a parent-child relationship")
+    @DeleteMapping("/relationships/parent-child")
+    @Operation(summary = "Remove parent-child relationship")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> removeParentChildRelation(
             @PathVariable String tenantId,
-            @PathVariable UUID parentId,
-            @PathVariable UUID childId) {
+            @RequestParam UUID parentId,
+            @RequestParam UUID childId) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
             Person child = personService.removeParentChildRelation(tenantId, userId, parentId, childId);
-            return ResponseEntity.ok(child);
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/{parentId}/children/{childId}")
-    @Operation(summary = "Update parent-child relationship", 
-              description = "Update properties of parent-child relationship")
-    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
-    public ResponseEntity<?> updateParentChildRelation(
-            @PathVariable String tenantId,
-            @PathVariable UUID parentId,
-            @PathVariable UUID childId,
-            @RequestParam ParentChildType type,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) Double confidenceScore) {
-        try {
-            validateTenantAccess(tenantId);
-            String userId = securityContext.getCurrentUserId();
-            
-            Person child = personService.updateParentChildRelation(
-                    tenantId, userId, parentId, childId, type, startDate, confidenceScore);
-            return ResponseEntity.ok(child);
+            PersonDto responseDto = entityMapper.toPersonDto(child);
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -246,8 +254,13 @@ public class PersonController {
             @PathVariable UUID id) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> children = personService.getChildren(tenantId, id);
-            return ResponseEntity.ok(children);
+            List<PersonDto> responseDtos = children.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -264,8 +277,13 @@ public class PersonController {
             @PathVariable UUID id) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> parents = personService.getParents(tenantId, id);
-            return ResponseEntity.ok(parents);
+            List<PersonDto> responseDtos = parents.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -277,26 +295,31 @@ public class PersonController {
 
     // ========== SPOUSAL RELATIONSHIPS ==========
 
-    @PostMapping("/{person1Id}/spouses/{person2Id}")
-    @Operation(summary = "Add spousal relationship", 
-              description = "Create a spousal relationship with status (MARRIED, DIVORCED, SEPARATED, WIDOWED)")
+    @PostMapping("/relationships/spousal")
+    @Operation(summary = "Add spousal relationship", description = "Create spousal relationship using DTO")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> addSpousalRelation(
             @PathVariable String tenantId,
-            @PathVariable UUID person1Id,
-            @PathVariable UUID person2Id,
-            @RequestParam SpousalStatus status,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            @RequestParam(required = false) String partnershipType) {
+            @Valid @RequestBody RelationshipDto.SpousalRelationRequest request) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
+            // Validate request
+            request.validate();
+            
             Person person = personService.addSpousalRelation(
-                    tenantId, userId, person1Id, person2Id, status, 
-                    startDate, endDate, partnershipType);
-            return ResponseEntity.ok(person);
+                    tenantId, userId,
+                    request.person1Id(),
+                    request.person2Id(),
+                    request.status(),
+                    request.startDate(),
+                    request.endDate(),
+                    request.partnershipType()
+            );
+            
+            PersonDto responseDto = entityMapper.toPersonDto(person);
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -311,51 +334,20 @@ public class PersonController {
         }
     }
 
-    @DeleteMapping("/{person1Id}/spouses/{person2Id}")
-    @Operation(summary = "Remove spousal relationship", 
-              description = "Remove a spousal relationship")
+    @DeleteMapping("/relationships/spousal")
+    @Operation(summary = "Remove spousal relationship")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> removeSpousalRelation(
             @PathVariable String tenantId,
-            @PathVariable UUID person1Id,
-            @PathVariable UUID person2Id) {
+            @RequestParam UUID person1Id,
+            @RequestParam UUID person2Id) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
             Person person = personService.removeSpousalRelation(tenantId, userId, person1Id, person2Id);
-            return ResponseEntity.ok(person);
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/{person1Id}/spouses/{person2Id}")
-    @Operation(summary = "Update spousal relationship", 
-              description = "Update properties of spousal relationship")
-    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
-    public ResponseEntity<?> updateSpousalRelation(
-            @PathVariable String tenantId,
-            @PathVariable UUID person1Id,
-            @PathVariable UUID person2Id,
-            @RequestParam SpousalStatus status,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
-            @RequestParam(required = false) String partnershipType) {
-        try {
-            validateTenantAccess(tenantId);
-            String userId = securityContext.getCurrentUserId();
-            
-            Person person = personService.updateSpousalRelation(
-                    tenantId, userId, person1Id, person2Id, status, 
-                    startDate, endDate, partnershipType);
-            return ResponseEntity.ok(person);
+            PersonDto responseDto = entityMapper.toPersonDto(person);
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -368,14 +360,19 @@ public class PersonController {
     }
 
     @GetMapping("/{id}/spouses")
-    @Operation(summary = "Get spouses", description = "Get all spouses of a person")
+    @Operation(summary = "Get spouses")
     public ResponseEntity<?> getSpouses(
             @PathVariable String tenantId,
             @PathVariable UUID id) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> spouses = personService.getSpouses(tenantId, id);
-            return ResponseEntity.ok(spouses);
+            List<PersonDto> responseDtos = spouses.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -387,19 +384,27 @@ public class PersonController {
 
     // ========== FRIEND RELATIONSHIPS ==========
 
-    @PostMapping("/{person1Id}/friends/{person2Id}")
-    @Operation(summary = "Add friend relationship", description = "Create a friend relationship")
+    @PostMapping("/relationships/friend")
+    @Operation(summary = "Add friend relationship")
     @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
     public ResponseEntity<?> addFriendRelation(
             @PathVariable String tenantId,
-            @PathVariable UUID person1Id,
-            @PathVariable UUID person2Id) {
+            @Valid @RequestBody RelationshipDto.FriendRelationRequest request) {
         try {
             validateTenantAccess(tenantId);
             String userId = securityContext.getCurrentUserId();
             
-            Person person = personService.addFriendRelation(tenantId, userId, person1Id, person2Id);
-            return ResponseEntity.ok(person);
+            // Validate request
+            request.validate();
+            
+            Person person = personService.addFriendRelation(
+                    tenantId, userId, 
+                    request.person1Id(), 
+                    request.person2Id()
+            );
+            
+            PersonDto responseDto = entityMapper.toPersonDto(person);
+            return ResponseEntity.ok(responseDto);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -414,59 +419,22 @@ public class PersonController {
         }
     }
 
-    @DeleteMapping("/{person1Id}/friends/{person2Id}")
-    @Operation(summary = "Remove friend relationship", description = "Remove a friend relationship")
-    @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'STANDARD_USER')")
-    public ResponseEntity<?> removeFriendRelation(
-            @PathVariable String tenantId,
-            @PathVariable UUID person1Id,
-            @PathVariable UUID person2Id) {
-        try {
-            validateTenantAccess(tenantId);
-            String userId = securityContext.getCurrentUserId();
-            
-            Person person = personService.removeFriendRelation(tenantId, userId, person1Id, person2Id);
-            return ResponseEntity.ok(person);
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
+    // ========== SEARCH ==========
 
-    // ========== SEARCH AND QUERIES ==========
-
-    @GetMapping("/search/by-name")
-    @Operation(summary = "Search people by name", description = "Find people by first name")
-    public ResponseEntity<?> findPeopleByName(
+    @GetMapping("/search")
+    @Operation(summary = "Search people by name")
+    public ResponseEntity<?> searchPeople(
             @PathVariable String tenantId,
             @RequestParam String name) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> people = personService.findPeopleByName(tenantId, name);
-            return ResponseEntity.ok(people);
-        } catch (SecurityException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/search/by-lineage/{lineageId}")
-    @Operation(summary = "Search people by lineage", description = "Find people by lineage")
-    public ResponseEntity<?> findPeopleByLineage(
-            @PathVariable String tenantId,
-            @PathVariable UUID lineageId) {
-        try {
-            validateTenantAccess(tenantId);
-            List<Person> people = personService.findPeopleByLineage(tenantId, lineageId);
-            return ResponseEntity.ok(people);
+            List<PersonDto> responseDtos = people.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
@@ -477,14 +445,19 @@ public class PersonController {
     }
 
     @GetMapping("/{id}/siblings")
-    @Operation(summary = "Get siblings", description = "Get all siblings of a person")
+    @Operation(summary = "Get siblings")
     public ResponseEntity<?> getSiblings(
             @PathVariable String tenantId,
             @PathVariable UUID id) {
         try {
             validateTenantAccess(tenantId);
+            
             List<Person> siblings = personService.getSiblings(tenantId, id);
-            return ResponseEntity.ok(siblings);
+            List<PersonDto> responseDtos = siblings.stream()
+                    .map(entityMapper::toPersonDto)
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(responseDtos);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", e.getMessage()));
