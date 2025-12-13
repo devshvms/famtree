@@ -3,7 +3,6 @@ package in.shvms.famt_be.dto;
 import in.shvms.famt_be.entity.Gender;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
 import java.util.UUID;
