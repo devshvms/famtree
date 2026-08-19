@@ -1,0 +1,118 @@
+# Local development stack for the famtree backend.
+#
+#   make up          start databases + mail catcher
+#   make up-all      also build and run the API container
+#
+# Data lives in named volumes; `make clean` removes them.
+name: famtree
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: famtree-neo4j
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"   # Browser UI
+      - "${NEO4J_BOLT_PORT:-7687}:7687"   # Bolt driver
+    environment:
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-famtree-local-dev}"
+      NEO4J_server_memory_heap_max__size: 512M
+      NEO4J_server_memory_pagecache_size: 256M
+    volumes:
+      - neo4j-data:/data
+      - ./docker/neo4j-init:/init:ro
+    healthcheck:
+      # cypher-shell exits non-zero until Bolt is actually serving queries.
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"${NEO4J_PASSWORD:-famtree-local-dev}\" 'RETURN 1' || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+  # One-shot job: loads Earth + 250 countries the first time only.
+  # The app's Location hierarchy is unusable without this seed.
+  neo4j-seed:
+    image: neo4j:5-community
+    container_name: famtree-neo4j-seed
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-famtree-local-dev}"
+    volumes:
+      - ./docker/neo4j-init:/init:ro
+      # the repo's own Cypher seed script is the single source of truth
+      - ./src/main/resources/init:/seed-data:ro
+    entrypoint: ["/bin/bash", "/init/seed.sh"]
+    restart: "no"
+
+  mongo:
+    image: mongo:7
+    container_name: famtree-mongo
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: "${MONGO_DATABASE:-famt}"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok' | grep -q 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # Catches the OTP / welcome-PIN emails the activation flow sends,
+  # so you never need real SMTP credentials to test onboarding.
+  # Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: famtree-mailpit
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Optional: the API itself, containerised. Enable with `make up-all`
+  # (profiles keep it out of the default `make up`, so you can run the
+  # app from your IDE against the same databases).
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: famtree-app
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      # Same variable names application.properties reads (see .env.example).
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-famtree-local-dev}"
+      MONGO_URI: "mongodb://mongo:27017/${MONGO_DATABASE:-famt}"
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      JWT_SECRET: "${JWT_SECRET:-local-development-only-secret-key-at-least-32-bytes-long}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  neo4j-data:
+  mongo-data:

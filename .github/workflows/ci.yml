@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Fail fast instead of retrying a dead mirror for minutes.
+  MAVEN_ARGS: "-B -ntp"
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Compile
+        run: ./mvnw $MAVEN_ARGS -DskipTests compile
+
+      - name: Unit tests
+        run: ./mvnw $MAVEN_ARGS test
+
+      # ubuntu-latest runners ship a working Docker daemon, so Testcontainers
+      # spins up real Neo4j and MongoDB instances here.
+      - name: Integration tests
+        run: ./mvnw $MAVEN_ARGS verify
+
+      - name: Publish test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          if-no-files-found: ignore
+
+      - name: Publish coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage
+          path: target/site/jacoco/
+          if-no-files-found: ignore
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install gitleaks
+        run: |
+          version=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+
+      # Gates on the working tree. History still contains a Neo4j password
+      # that predates this workflow; audit it with `make secrets-history`.
+      - name: Scan working tree
+        run: ./scripts/scan-secrets.sh
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: famtree-be:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

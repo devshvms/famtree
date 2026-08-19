@@ -36,3 +36,5 @@ build/
 
 ### Credentials ###
 creds.properties
+# --- local dev ---
+.env
