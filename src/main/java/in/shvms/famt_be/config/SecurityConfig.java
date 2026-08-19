@@ -42,6 +42,9 @@ public class SecurityConfig {
                                 "/api/auth/tenants",
                                 "/api/auth/register-admin",
                                 "/api/auth/validate",
+                                // liveness probe for docker compose / CI / k8s
+                                "/actuator/health",
+                                "/actuator/health/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html"

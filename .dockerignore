@@ -1,0 +1,12 @@
+target/
+.git/
+.github/
+.idea/
+.vscode/
+.idx/
+*.iml
+**/.DS_Store
+docs/
+Implementation Docs/
+.env
+*.log

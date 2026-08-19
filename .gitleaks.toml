@@ -1,0 +1,25 @@
+# gitleaks configuration for famtree.
+# Extends the upstream default ruleset and teaches it which values in this
+# repo are deliberate placeholders.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders and local-only development defaults"
+
+paths = [
+  '''\.env\.example''',
+  '''\.gitleaks\.toml''',
+  '''scripts/scan-secrets\.sh''',
+  '''Implementation Docs/.*''',   # design docs quote sample tokens and PINs
+  '''docs/.*''',
+]
+
+regexes = [
+  '''famtree-local-dev''',                                          # compose Neo4j password
+  '''local-development-only-secret-key-at-least-32-bytes-long''',   # dev JWT key
+  '''unit-test-signing-key-.*''',                                   # JwtUtilTest
+  '''a-completely-different-signing-key-of-sufficient-length''',    # JwtUtilTest
+  '''test-password''',                                              # Testcontainers
+  '''your-[a-z-]+''',                                               # your-email@, your-app-password
+]
